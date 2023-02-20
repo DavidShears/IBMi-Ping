@@ -1,0 +1,78 @@
+/**********************************************************************/
+/*                                                                    */
+/*      Program     :   PINGTESTCL                                    */
+/*      Description :   Continuous ping with write to file            */
+/*      Author      :   David Shears                                  */
+/*      Create Date :   April 2018                                    */
+/*                                                                    */
+/**********************************************************************/
+/*  Amendment Record                                                  */
+/*Log No :  Date    :Pgmr: Description of change.                     */
+/*--------------------------------------------------------------------*/
+/*       :27/04/2018: DXS: Created as new object                      */
+/**********************************************************************/
+             PGM        PARM(&P#IP &P#MODE)
+
+             DCL        VAR(&P#IP)  TYPE(*CHAR) LEN(15)
+             DCL        VAR(&P#Mode)  TYPE(*CHAR) LEN(1)
+             DCL        VAR(&ENDING)  TYPE(*CHAR) LEN(1)
+             DCL        VAR(&DLYSEC)  TYPE(*CHAR) LEN(3) value('060')
+
+             DCL        VAR(&MSGDATA) TYPE(*CHAR) LEN(12)
+             DCL        VAR(&PCT_GOOD) TYPE(*INT) STG(*DEFINED) +
+                          LEN(4) DEFVAR(&MSGDATA 9)
+             DCL        VAR(&PCT_RTRN) TYPE(*DEC) LEN(3 0)
+
+/* Error Trapping */
+             DCL        VAR(&MSGID) TYPE(*CHAR) LEN(7)
+             DCL        VAR(&MSGDTA) TYPE(*CHAR) LEN(256)
+             DCL        VAR(&MSGF) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&MSGFLIB) TYPE(*CHAR) LEN(10)
+
+/*  ---------------------------------------------------------------  */
+/*  -  GLOBAL ERROR TRAP - CAPTURE                                -  */
+
+             MONMSG     MSGID(CPF0000 MCH0000) EXEC(GOTO CMDLBL(ERROR))
+/*  ---------------------------------------------------------------  */
+TOPLOOP:
+/*have we been asked to close down?  */
+             RTVJOBA    ENDSTS(&ENDING)
+             IF         COND(&ENDING = '1') THEN(DO)
+             GOTO       CMDLBL(EXIT)
+             ENDDO
+/*  ---------------------------------------------------------------  */
+/* Ping and then receieve message                                    */
+             PING       RMTSYS(&P#IP)
+             RCVMSG     MSGTYPE(*LAST) RMV(*NO) MSGDTA(&MSGDATA) +
+                          MSGID(&MSGID)
+             CHGVAR     VAR(&PCT_RTRN) VALUE(&PCT_GOOD)
+             IF         COND((&MSGID = TCP3210) *AND (&PCT_GOOD < +
+                          100) *AND (&P#MODE = 'D')) THEN(DO)
+             CALL       PGM(PINGTEST) PARM(&P#IP &P#MODE +
+                          &PCT_RTRN)
+             ENDDO
+             IF         COND((&MSGID = TCP3210) *AND (&PCT_GOOD > +
+                          0) *AND (&P#MODE = 'U')) THEN(DO)
+             CALL       PGM(PINGTEST) PARM(&P#IP &P#MODE +
+                          &PCT_RTRN)
+             ENDDO
+
+/*  ---------------------------------------------------------------  */
+ /* now wait then start again */
+ WAIT:
+             DLYJOB     DLY(&DLYSEC)
+             GOTO       CMDLBL(TOPLOOP)
+
+/*  ---------------------------------------------------------------  */
+/*  -  GLOBAL ERROR TRAP - HANDLING                               -  */
+ERROR:
+             RCVMSG     MSGTYPE(*EXCP) RMV(*NO) MSGDTA(&MSGDTA) +
+                          MSGID(&MSGID) MSGF(&MSGF) MSGFLIB(&MSGFLIB)
+             MONMSG     MSGID(CPF0000 MCH0000)
+
+             SNDPGMMSG  MSGID(&MSGID) MSGF(&MSGFLIB/&MSGF) +
+                          MSGDTA(&MSGDTA) MSGTYPE(*ESCAPE)
+             MONMSG     MSGID(CPF0000 MCH0000)
+/*  ---------------------------------------------------------------  */
+EXIT:
+             ENDPGM

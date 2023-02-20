@@ -1,0 +1,29 @@
+      ****************************************************************
+      *        *
+      *    ======================================================    *
+      *                                                              *
+      *   FILE        :   PINGLOG                                    *
+      *   DESCRIPTION :   Ping Test results                          *
+      *   AUTHOR      :   David Shears                               *
+      *   CREATE DATE :   April 2018                                 *
+      *   NOTES       :                                              *
+      *                                                              *
+      ****************************************************************
+      *AMENDMENT RECORD
+      *LOG NO :   DATE   :PGMR:DESCRIPTION OF CHANGE.
+      *---------------------------------------------------------------
+      *       :          :    :
+      ****************************************************************
+     A          R PINGR                     TEXT('Ping Test Results')
+      *----------------------------------------------------------------
+     A            PINGIP        46          COLHDG('Remote Address')
+     A            PINGST         1          COLHDG('Ping Status (U/D)')
+     A            PINGPCT        3  0       COLHDG('Percent returned')
+     A            PINGD           L         COLHDG('DATE')
+     A            PINGT           T         COLHDG('TIME')
+     A            PINGU         10A         COLHDG('USER')
+      *-----------------------------------------------------------
+     A          K PINGIP
+     A          K PINGD
+     A          K PINGT
+     A          K PINGU
